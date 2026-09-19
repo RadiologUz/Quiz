@@ -1716,6 +1716,16 @@ function retry() {
 /* A phone has no console. If a script error ever slips through, say so on
    screen rather than leaving a page whose buttons quietly do nothing. */
 window.addEventListener("error", e => {
+  /* Browsers, in-app viewers and translation add-ons inject scripts of their
+     own into the page. When one of those throws, the event reaches us stripped
+     to a bare "Script error." with no file and no line, because the browser
+     will not expose another origin's internals. Those are not ours to report —
+     without this guard the bar cries wolf on a page that is working fine. */
+  const here = e.filename || "";
+  const ours = here && (here === location.href ||
+                        here.indexOf("file:") === 0 ||
+                        (location.origin !== "null" && here.indexOf(location.origin) === 0));
+  if (!ours || !e.message || e.message.indexOf("Script error") === 0) return;
   if (document.querySelector(".errbar")) return;
   const bar = document.createElement("div");
   bar.className = "errbar";
